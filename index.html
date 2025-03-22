@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopee Spin Wheel</title>
+    <link rel="shortcut icon" href="img\Shopee_logo.svg.png" type="image/png">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #ff00dd, #00f2ff);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .wheel-container {
+            pointer-events: none;
+            width: 350px;
+            height: 350px;
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 10px solid #fff;
+            position: relative;
+            transition: transform 4s ease-out;
+            background: conic-gradient(red 0deg 90deg, yellow 90deg 180deg, blue 180deg 270deg, green 270deg 360deg);
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .pointer {
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 40px solid red;
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .indicator-line {
+            position: absolute;
+            width: 6px;
+            height: 60px;
+            background: black;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+        }
+
+        .prize-segment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-origin: center;
+        }
+
+        .prize-segment img {
+            width: 60px;
+            height: 60px;
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 10px;
+        }
+
+        .spin-button,
+        .code-button {
+            margin-top: 10px;
+            padding: 12px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff0000, #ff8800);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        .spin-button:hover,
+        .code-button:hover {
+            background: linear-gradient(45deg, #ff8800, #ff0000);
+            transform: scale(1.05);
+        }
+
+        .spin-button:disabled {
+            background: gray;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        #code-input {
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <input type="text" id="code-input" placeholder="Masukkan kode rahasia">
+    <button class="code-button" id="codeButton">Verifikasi Kode</button>
+
+    <div class="wheel-container" style="display: none;" id="wheelContainer">
+        <div class="pointer"></div>
+        <div class="indicator-line"></div>
+        <div class="wheel" id="wheel">
+            <div class="prize-segment" style="transform: rotate(45deg);">
+                <img src="img/vocher.jpg" alt="Voucher">
+            </div>
+            <div class="prize-segment" style="transform: rotate(135deg);">
+                <img src="img/Tas Mossdoom.jpg" alt="Mossdoom">
+            </div>
+            <div class="prize-segment" style="transform: rotate(225deg);">
+                <img src="img/Uang 50K.jpg" alt="50.000">
+            </div>
+            <div class="prize-segment" style="transform: rotate(315deg);">
+                <img src="img/Uang 100K.jpg" alt="100.000">
+            </div>
+        </div>
+    </div>
+
+    <button class="spin-button" id="spinButton" disabled>Spin</button>
+    <p class="result" id="result"></p>
+
+    <audio id="spinSound" src="Lucky Wheel_147239759.mp3"></audio>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+                let isSpinning = false;
+                let hasSpun = false;
+                let wheel = document.getElementById("wheel");
+                let resultText = document.getElementById("result");
+                let spinButton = document.getElementById("spinButton");
+                let spinSound = document.getElementById("spinSound");
+                let codeInput = document.getElementById("code-input");
+                let codeButton = document.getElementById("codeButton");
+                let wheelContainer = document.getElementById("wheelContainer");
+
+                const secretCode = "ARIEL-SHOPEE-43637"; // Kode rahasia
+                const usedCodes = JSON.parse(localStorage.getItem("usedCodes")) || []; // Ambil kode yang sudah dipakai
+
+                // Hadiah yang ditargetkan (hanya "50.000")
+                const targetPrize = {
+                    name: "50.000",
+                    min: 45,  // Sudut minimum hadiah
+                    max: 135, // Sudut maksimum hadiah
+                };
+
+                // Cek apakah kode sudah digunakan sebelumnya
+                if (usedCodes.includes(secretCode)) {
+                    codeInput.disabled = true;
+                    codeButton.disabled = true;
+                    alert("Kode ini sudah digunakan! Tidak bisa digunakan lagi.");
+                }
+
+                codeButton.addEventListener("click", function () {
+                    if (usedCodes.includes(secretCode)) {
+                        alert("Kode ini sudah digunakan! Tidak bisa digunakan lagi.");
+                        return;
+                    }
+
+                    if (codeInput.value === secretCode) {
+                        alert("Kode benar! Silakan spin.");
+                        wheelContainer.style.display = "block";
+                        spinButton.disabled = false;
+                        codeInput.disabled = true;
+                        codeButton.disabled = true;
+
+                        // Simpan kode ke localStorage agar tidak bisa digunakan ulang
+                        usedCodes.push(secretCode);
+                        localStorage.setItem("usedCodes", JSON.stringify(usedCodes));
+                    } else {
+                        alert("Kode salah! Coba lagi.");
+                    }
+                });
+
+                spinButton.addEventListener("click", function () {
+                    if (isSpinning || hasSpun) return;
+                    isSpinning = true;
+                    spinButton.disabled = true;
+                    resultText.innerText = "Sedang berputar...";
+
+                    spinSound.currentTime = 0;
+                    spinSound.play();
+
+                    // **Set rotasi agar selalu berhenti di hadiah "50.000"**
+                    let baseRotation = 1080; // 3 putaran penuh
+                    let randomTargetDegree = targetPrize.min + Math.floor(Math.random() * (targetPrize.max - targetPrize.min));
+                    let finalRotation = baseRotation + randomTargetDegree;
+
+                    wheel.style.transition = "transform 4s ease-out";
+                    wheel.style.transform = `rotate(${finalRotation}deg)`;
+
+                    setTimeout(() => {
+                        resultText.innerText = `Anda mendapatkan: ${targetPrize.name}! 🎉`;
+                        isSpinning = false;
+                        hasSpun = true;
+                    }, 4000);
+                });
+            });
+
+    </script>
+</body>
+
+</html>
